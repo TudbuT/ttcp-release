@@ -1,0 +1,17 @@
+{
+    "required": true,
+    "min_version": "0",
+    "compatibilityLevel": "JAVA_8",
+    "package": "de.tudbut.mod.client.ttcp.mixin",
+    "refmap": "mixins.ttcp.refmap.json",
+    "mixins": [
+        "MixinSoundHandler",
+        "MixinClientConnection",
+        "MixinParticleManager",
+        "MixinMinecraft",
+        "MixinEntityRenderer",
+        "MixinFMLNetworkRegistry"
+    ],
+    "client": [],
+    "server": []
+}

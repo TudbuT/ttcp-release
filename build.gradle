@@ -1,0 +1,127 @@
+
+buildscript {
+    repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        maven { url = "https://repo.spongepowered.org/maven" }
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:5.+'
+        classpath "org.spongepowered:mixingradle:0.7.+"
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
+apply plugin: 'org.spongepowered.mixin'
+apply plugin: 'eclipse'
+
+version = mod_version
+group = mod_group
+archivesBaseName = mod_id
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+
+repositories {
+    maven { url = 'https://repo.spongepowered.org/maven' }
+    mavenCentral()
+}
+
+
+compileJava {
+    options.encoding = "UTF-8"
+}
+
+configurations {
+    atj
+}
+
+minecraft {
+    mappings channel: 'stable', version: '39-1.12'
+    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
+    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    String myJvmArgs = "-Dfml.coreMods.load=${mod_core_plugin.replace('${mod_group}', mod_group).replace('${mod_id}', mod_id)}"
+    String[] myRunArgs = ["--mixin", "${mod_mixin_configs.replace('${mod_id}', mod_id)}", "--userType", "mojang", "--username", "TudbuT_dev", "--accessToken", "fuck no, this is going on github", "--uuid", "b8dd8777a0744f3da5b90b19def1b1ac"]
+    runs {
+        client {
+            args = myRunArgs
+            jvmArgs = [myJvmArgs]
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
+        }
+
+        server {
+            args = myRunArgs
+            jvmArgs = [myJvmArgs]
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
+        }
+    }
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2860'
+
+    //implementation('net.minecraftforge:mergetool:1.0.12')
+    implementation atj ('org.spongepowered:mixin:0.7.11-SNAPSHOT') {
+        exclude module: 'launchwrapper'
+        exclude module: 'guava'
+        exclude module: 'gson'
+        exclude module: 'commons-io'
+        exclude module: 'log4j-core'
+    }
+    annotationProcessor('org.spongepowered:mixin:0.8.5:processor') {
+        exclude module: 'gson'
+    }
+
+    implementation atj (fileTree(dir: "lib", include: "*.jar"))
+}
+
+processResources {
+    inputs.property "version", version
+    inputs.property "mcversion", minecraft_version
+
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+
+        expand 'mod_id': mod_id, 'mod_name': mod_name, 'version': project.version,
+                'mcversion': minecraft_version, 'mod_description': mod_description,
+                'mod_author': mod_author
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+mixin {
+    debug.verbose = true
+    debug.export = true
+    dumpTargetOnFailure = true
+    defaultObfuscationEnv 'searge'
+    add sourceSets.main, 'mixins.ttcp.refmap.json'
+}
+
+jar {
+    from {
+        configurations.atj
+                .collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "LICENSE.txt", "META-INF/MANIFSET.MF", "META-INF/maven/**", "META-INF/*.RSA", "META-INF/*.SF"
+    }
+    //from { fileTree("sponge") } // not sure if this is needed, i will see when i get a complaint from a FutureClient user
+
+    manifest {
+        attributes "FMLCorePluginContainsFMLMod": "true"
+        attributes "ForceLoadAsMod": "true"
+        attributes "TweakClass": "org.spongepowered.asm.launch.MixinTweaker"
+        attributes "TweakOrder": "0"
+        attributes "MixinConfigs": mod_mixin_configs.replace('${mod_id}', mod_id)
+        attributes "FMLCorePlugin": "de.tudbut.mod.client.ttcp.CoreModTTCp"
+    }
+}
+
+//jar.finalizedBy('reobfJar')
+
+
